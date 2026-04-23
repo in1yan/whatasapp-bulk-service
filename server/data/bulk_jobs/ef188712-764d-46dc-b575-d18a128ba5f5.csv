@@ -1,0 +1,11 @@
+Name,Number,Bulk_Status
+John Doe,1234567890,Failed: Missing template variable 'name'
+Jane Smith,2345678901,Failed: Missing template variable 'name'
+Michael Johnson,3456789012,Failed: Missing template variable 'name'
+JK,8098615834,Failed: Missing template variable 'name'
+William Brown,5678901234,Failed: Missing template variable 'name'
+Emma Wilson,6789012345,
+Malar,7094253856,
+Sophia Anderson,8901234567,
+James Thomas,9012345678,
+Isabella Jackson,123456789,

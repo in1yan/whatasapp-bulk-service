@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.py[oc]
+.pnpm-debug.log*
+
+# Build and Production
+.next/
+out/
+build/
+dist/
+wheels/
+*.egg-info
+*.tsbuildinfo
+
+# Docker and Local configuration
+.sessions/
+.env*
+.vercel
+
+# IDE and System
+.DS_Store
+*.pem
+.idea/
+.vscode/
+
+# Project Specific
+next-env.d.ts
