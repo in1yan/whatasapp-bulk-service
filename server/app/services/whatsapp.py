@@ -182,7 +182,7 @@ class WhatsappService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{settings.WAHA_URL}/sessions/{session}/me",
+                    f"{settings.WAHA_URL}/{session}/profile",
                     headers=headers,
                     timeout=30.0,
                 )

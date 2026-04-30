@@ -4,7 +4,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Tabs";
 
-type SessionStatus = "WORKING" | "SCAN_QR" | "STARTING" | "FAILED" | "STOPPED" | null;
+type SessionStatus =
+  | "WORKING"
+  | "SCAN_QR"
+  | "STARTING"
+  | "FAILED"
+  | "STOPPED"
+  | null;
 
 export const SessionManager = () => {
   const [session, setSession] = useState<any>(null);
@@ -15,6 +21,9 @@ export const SessionManager = () => {
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+
+  // Me / profile state
+  const [me, setMe] = useState<any>(null);
 
   // Screenshot state
   const [screenshotSrc, setScreenshotSrc] = useState<string | null>(null);
@@ -34,7 +43,9 @@ export const SessionManager = () => {
         setSession(data);
         setError(null);
       } else {
-        const errData = await res.json().catch(() => ({ detail: "Unknown error" }));
+        const errData = await res
+          .json()
+          .catch(() => ({ detail: "Unknown error" }));
         setError(errData.detail || "Failed to fetch session");
         setSession(null);
       }
@@ -61,6 +72,21 @@ export const SessionManager = () => {
       setQrSrc(null);
     } finally {
       setQrLoading(false);
+    }
+  }, []);
+
+  // ── /me fetch (profile picture + name) ───────────────────────────────────
+  const fetchMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/v1/whatsapp/me");
+      if (res.ok) {
+        const data = await res.json();
+        setMe(data);
+      } else {
+        setMe(null);
+      }
+    } catch {
+      setMe(null);
     }
   }, []);
 
@@ -100,10 +126,15 @@ export const SessionManager = () => {
     return () => clearInterval(interval);
   }, [fetchSession]);
 
-  // When not connected, auto-load QR
+  // When not connected → load QR; when connected → load /me profile
   useEffect(() => {
-    if (!loading && !isConnected) {
-      refreshQR();
+    if (!loading) {
+      if (isConnected) {
+        fetchMe();
+      } else {
+        refreshQR();
+        setMe(null);
+      }
     }
     // Revoke stale object URL on cleanup
     return () => {
@@ -118,11 +149,15 @@ export const SessionManager = () => {
     status === "WORKING"
       ? "bg-success-green text-background"
       : status === "STARTING"
-      ? "bg-warning-orange text-background"
-      : "bg-danger-red text-background";
+        ? "bg-warning-orange text-background"
+        : "bg-danger-red text-background";
 
   if (loading)
-    return <div className="text-mid-gray font-mono animate-pulse">Initialising terminal...</div>;
+    return (
+      <div className="text-mid-gray font-mono animate-pulse">
+        Initialising terminal...
+      </div>
+    );
 
   return (
     <div className="space-y-6">
@@ -135,8 +170,12 @@ export const SessionManager = () => {
         )}
 
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold font-mono uppercase tracking-wider">Session Status</h2>
-          <div className={`px-3 py-1 rounded-[4px] text-xs font-bold uppercase ${statusColor}`}>
+          <h2 className="text-lg font-bold font-mono uppercase tracking-wider">
+            Session Status
+          </h2>
+          <div
+            className={`px-3 py-1 rounded-[4px] text-xs font-bold uppercase ${statusColor}`}
+          >
             {statusLabel}
           </div>
         </div>
@@ -182,24 +221,52 @@ export const SessionManager = () => {
 
         {/* ── Connected info ───────────────────────────────────────────── */}
         {isConnected && (
-          <div className="space-y-4 font-mono text-sm mb-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-mid-gray">Session ID:</div>
-              <div>{session?.name || "default"}</div>
-              <div className="text-mid-gray">Status:</div>
-              <div className="text-success-green">{status}</div>
-              {session?.me?.pushName && (
-                <>
-                  <div className="text-mid-gray">Name:</div>
-                  <div>{session.me.pushName}</div>
-                </>
+          <div className="flex gap-6 items-start mb-6">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              {me?.picture ? (
+                <img
+                  src={me.picture}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-success-green"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-dark-surface border-2 border-border-gray flex items-center justify-center text-mid-gray font-mono text-2xl">
+                  {(me?.pushName ??
+                    session?.me?.pushName ??
+                    "?")[0].toUpperCase()}
+                </div>
               )}
-              {session?.me?.id && (
-                <>
-                  <div className="text-mid-gray">Number:</div>
-                  <div>{session.me.id}</div>
-                </>
-              )}
+            </div>
+
+            {/* Details */}
+            <div className="font-mono text-sm space-y-2 flex-1">
+              <div className="flex gap-2 items-baseline">
+                <span className="text-mid-gray text-xs uppercase tracking-wider">
+                  Name
+                </span>
+                <span className="font-semibold">
+                  {me?.pushName ?? session?.me?.pushName ?? "—"}
+                </span>
+              </div>
+              <div className="flex gap-2 items-baseline">
+                <span className="text-mid-gray text-xs uppercase tracking-wider">
+                  Number
+                </span>
+                <span>{me?.id ?? session?.me?.id ?? "—"}</span>
+              </div>
+              <div className="flex gap-2 items-baseline">
+                <span className="text-mid-gray text-xs uppercase tracking-wider">
+                  Session
+                </span>
+                <span>{session?.name || "default"}</span>
+              </div>
+              <div className="flex gap-2 items-baseline">
+                <span className="text-mid-gray text-xs uppercase tracking-wider">
+                  Status
+                </span>
+                <span className="text-success-green font-bold">{status}</span>
+              </div>
             </div>
           </div>
         )}
@@ -223,7 +290,9 @@ export const SessionManager = () => {
           </h2>
           <div className="flex items-center gap-3">
             {screenshotTs && (
-              <span className="text-xs text-mid-gray font-mono">Last: {screenshotTs}</span>
+              <span className="text-xs text-mid-gray font-mono">
+                Last: {screenshotTs}
+              </span>
             )}
             <Button
               onClick={refreshScreenshot}
@@ -243,7 +312,8 @@ export const SessionManager = () => {
 
         {!screenshotSrc && !screenshotLoading && !screenshotError && (
           <div className="h-48 flex items-center justify-center border border-dashed border-border-gray rounded-[4px] text-mid-gray font-mono text-xs">
-            Click &quot;Capture&quot; to take a screenshot of the current WhatsApp Web state
+            Click &quot;Capture&quot; to take a screenshot of the current
+            WhatsApp Web state
           </div>
         )}
 
@@ -265,7 +335,7 @@ export const SessionManager = () => {
       </Card>
 
       {/* ── Instance Logs ────────────────────────────────────────────────────── */}
-      <Card>
+      {/*<Card>
         <h2 className="text-lg font-bold font-mono uppercase tracking-wider mb-4">
           Instance Logs
         </h2>
@@ -288,7 +358,7 @@ export const SessionManager = () => {
             <div className="text-danger-red">[FAILED] Session failed to start</div>
           )}
         </div>
-      </Card>
+      </Card>*/}
     </div>
   );
 };
