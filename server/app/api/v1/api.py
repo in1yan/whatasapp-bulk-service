@@ -10,6 +10,7 @@ api_router.include_router(
 )
 api_router.include_router(
     whatsapp.router,
+    prefix="/whatsapp",
     tags=["whatsapp"],
 )
 api_router.include_router(

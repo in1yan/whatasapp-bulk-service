@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY pyproject.toml .
-# If there are dependencies in pyproject.toml, you might want to install them here
+# Use pip to install dependencies from pyproject.toml directly
 RUN pip install .
 
 COPY . .

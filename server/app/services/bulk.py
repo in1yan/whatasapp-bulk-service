@@ -103,9 +103,11 @@ class BulkMessageService:
                 except Exception as e:
                     print(f"Failed to save progress to file: {e}")
 
-                # Anti-ban delay
+                # Anti-ban delay - using the user provided delay
                 if index < total_rows - 1:
-                    await asyncio.sleep(random.randint(1 * 60, 2 * 60))
+                    # Add a bit of jitter to the user delay
+                    jitter = random.uniform(0.5, 1.5)
+                    await asyncio.sleep(delay * jitter)
 
             bulk_jobs[job_id]["status"] = "completed"
 

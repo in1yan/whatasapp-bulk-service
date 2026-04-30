@@ -7,6 +7,10 @@ services:
       - "8000:8000"
     volumes:
       - ./server:/app
+    environment:
+      - WAHA_URL=http://waha:3000/api
+    depends_on:
+      - waha
 
   client:
     build:
@@ -14,12 +18,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-      - /app/.next
     depends_on:
       - server
+    environment:
+      - BACKEND_URL=http://server:8000
   waha:
     image: devlikeapro/waha
     restart: always
