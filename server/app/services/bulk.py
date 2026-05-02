@@ -1,5 +1,6 @@
 import asyncio
 import random
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -34,6 +35,8 @@ class BulkMessageService:
             # Initialize status column if it doesn't exist
             if "Bulk_Status" not in df.columns:
                 df["Bulk_Status"] = ""
+            if "Bulk_Timestamp" not in df.columns:
+                df["Bulk_Timestamp"] = ""
 
             # Find the target phone number column
             target_col = None
@@ -63,6 +66,7 @@ class BulkMessageService:
                 phone_number = str(row[target_col]).strip()
                 if not phone_number or phone_number == "nan":
                     df.at[index, "Bulk_Status"] = "Failed: Empty phone number"
+                    df.at[index, "Bulk_Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     bulk_jobs[job_id]["failed"] += 1
                     bulk_jobs[job_id]["processed"] += 1
                     continue
@@ -73,6 +77,15 @@ class BulkMessageService:
                 }
 
                 try:
+                    # Check if number exists on WhatsApp first
+                    is_registered = await WhatsappService.check_number_exists(phone_number)
+                    if not is_registered:
+                        df.at[index, "Bulk_Status"] = "Failed: Number not registered on WhatsApp"
+                        df.at[index, "Bulk_Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        bulk_jobs[job_id]["failed"] += 1
+                        bulk_jobs[job_id]["processed"] += 1
+                        continue
+
                     # Inject variables into template
                     message_text = template.format(**row_dict)
 
@@ -81,15 +94,18 @@ class BulkMessageService:
                         number=phone_number, text=message_text
                     )
                     df.at[index, "Bulk_Status"] = "Sent"
+                    df.at[index, "Bulk_Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     bulk_jobs[job_id]["sent"] += 1
 
                 except KeyError as e:
                     df.at[index, "Bulk_Status"] = (
                         f"Failed: Missing template variable {e}"
                     )
+                    df.at[index, "Bulk_Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     bulk_jobs[job_id]["failed"] += 1
                 except Exception as e:
                     df.at[index, "Bulk_Status"] = f"Failed: {str(e)}"
+                    df.at[index, "Bulk_Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     bulk_jobs[job_id]["failed"] += 1
 
                 bulk_jobs[job_id]["processed"] += 1
@@ -108,6 +124,16 @@ class BulkMessageService:
                     # Add a bit of jitter to the user delay
                     jitter = random.uniform(0.5, 1.5)
                     await asyncio.sleep(delay * jitter)
+
+            # Final save to ensure all progress is written to disk, 
+            # including any rows that might have been skipped via 'continue'
+            try:
+                if file_path.suffix.lower() == ".csv":
+                    df.to_csv(file_path, index=False)
+                else:
+                    df.to_excel(file_path, index=False)
+            except Exception as e:
+                print(f"Failed to save final progress to file: {e}")
 
             bulk_jobs[job_id]["status"] = "completed"
 

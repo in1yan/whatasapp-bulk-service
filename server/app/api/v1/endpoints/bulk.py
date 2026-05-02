@@ -1,4 +1,6 @@
 import uuid
+import io
+import pandas as pd
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, UploadFile, BackgroundTasks, HTTPException
@@ -8,6 +10,49 @@ from app.services.bulk import BulkMessageService, bulk_jobs, BULK_JOBS_DIR
 
 router = APIRouter()
 
+@router.post("/estimate")
+async def estimate_bulk_send(
+    delay: int = Form(3),
+    file: UploadFile = File(...),
+):
+    """
+    Estimate the time it will take to complete a bulk messaging job.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename missing")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in [".csv", ".xlsx", ".xls"]:
+        raise HTTPException(
+            status_code=400, detail="Unsupported file format. Please upload CSV or Excel."
+        )
+
+    try:
+        content = await file.read()
+        if ext == ".csv":
+            df = pd.read_csv(io.BytesIO(content))
+        else:
+            df = pd.read_excel(io.BytesIO(content))
+            
+        total_rows = len(df)
+        
+        # Base overhead per message: ~1s for number check + ~1s for message send = 2s
+        # The jitter applied is random.uniform(0.5, 1.5) * delay
+        avg_delay = delay * 1.0
+        min_delay = delay * 0.5
+        max_delay = delay * 1.5
+        
+        avg_seconds = int(total_rows * (avg_delay + 2))
+        min_seconds = int(total_rows * (min_delay + 2))
+        max_seconds = int(total_rows * (max_delay + 2))
+        
+        return {
+            "total_rows": total_rows,
+            "estimated_time_seconds": avg_seconds,
+            "estimated_time_formatted": f"~{min_seconds // 60}m {min_seconds % 60}s to {max_seconds // 60}m {max_seconds % 60}s"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
 
 @router.post("/send")
 async def start_bulk_send(

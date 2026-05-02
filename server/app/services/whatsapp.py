@@ -48,6 +48,33 @@ class WhatsappService:
             raise HTTPException(status_code=500, detail=detail)
 
     @classmethod
+    async def check_number_exists(cls, number: str, session: str = "default") -> bool:
+        headers = {"accept": "application/json"}
+        if settings.WAHA_API_KEY and settings.WAHA_API_KEY != "key":
+            headers["X-Api-Key"] = settings.WAHA_API_KEY
+            
+        # Remove @c.us if present for the check-exists endpoint
+        phone = number.replace("@c.us", "")
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{settings.WAHA_URL}/contacts/check-exists",
+                    params={"phone": phone, "session": session},
+                    headers=headers,
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data.get("numberExists", False)
+        except httpx.HTTPError as e:
+            print(f"Failed to check if number exists: {e}")
+            # If the check fails, we might still want to try sending, 
+            # or we can assume it fails. Let's return True to allow sending attempt
+            # so we don't block legitimate messages if the check API is acting up.
+            return True
+
+    @classmethod
     async def send_typing(cls, number: str) -> dict:
         chat_id = number
         if not chat_id.endswith("@c.us"):

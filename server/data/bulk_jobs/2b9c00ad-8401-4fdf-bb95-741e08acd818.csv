@@ -1,0 +1,11 @@
+Name,Number,Bulk_Status,Bulk_Timestamp
+John Doe,1234567890,Failed: Number not registered on WhatsApp,2026-04-30 16:50:15
+Jane Smith,2345678901,Failed: Number not registered on WhatsApp,2026-04-30 16:50:15
+Michael Johnson,3456789012,Failed: Number not registered on WhatsApp,2026-04-30 16:50:16
+JK,8098615834,Sent,2026-04-30 16:50:26
+William Brown,5678901234,Failed: Number not registered on WhatsApp,2026-04-30 16:50:38
+Emma Wilson,6789012345,Failed: Number not registered on WhatsApp,2026-04-30 16:50:38
+Malar,9786579130,Sent,2026-04-30 16:50:41
+Sophia Anderson,8901234567,Failed: Number not registered on WhatsApp,2026-04-30 16:50:54
+James Thomas,9062149678,Failed: Number not registered on WhatsApp,2026-04-30 16:50:54
+Isabella Jackson,123456789,Failed: Number not registered on WhatsApp,2026-04-30 16:50:54

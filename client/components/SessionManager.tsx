@@ -6,7 +6,7 @@ import { Card } from "./ui/Tabs";
 
 type SessionStatus =
   | "WORKING"
-  | "SCAN_QR"
+  | "SCAN_QR_CODE"
   | "STARTING"
   | "FAILED"
   | "STOPPED"
@@ -180,8 +180,8 @@ export const SessionManager = () => {
           </div>
         </div>
 
-        {/* ── QR Login (shown whenever NOT connected) ─────────────────── */}
-        {!isConnected && (
+        {/* ── QR Login (shown ONLY when status is SCAN_QR) ─────────────────── */}
+        {status === "SCAN_QR_CODE" && (
           <div className="mb-6">
             <p className="text-xs text-mid-gray font-mono mb-3 uppercase tracking-wider">
               [SCAN QR TO AUTHENTICATE]
@@ -216,6 +216,19 @@ export const SessionManager = () => {
                 ↻ Refresh QR
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* ── Starting Animation (shown when status is STARTING) ─────────── */}
+        {status === "STARTING" && (
+          <div className="mb-6 py-12 flex flex-col items-center justify-center border border-dashed border-border-warm rounded-[6px]">
+            <div className="loader mb-6"></div>
+            <p className="text-sm font-mono text-success-green animate-pulse uppercase tracking-widest">
+              [INITIALIZING SESSION...]
+            </p>
+            <p className="text-[10px] font-mono text-mid-gray mt-2">
+              Waiting for WhatsApp engine to start
+            </p>
           </div>
         )}
 
