@@ -98,6 +98,7 @@ async def start_bulk_send(
         job_id=job_id,
         file_path=file_path,
         template=template,
+        original_filename=file.filename,
         delay=delay,
     )
 

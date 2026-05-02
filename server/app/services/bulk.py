@@ -1,5 +1,6 @@
 import asyncio
 import random
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
@@ -15,11 +16,14 @@ bulk_jobs: Dict[str, Dict[str, Any]] = {}
 BULK_JOBS_DIR = Path("data/bulk_jobs")
 BULK_JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
+REPORTS_DIR = Path("data/reports")
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class BulkMessageService:
     @staticmethod
     async def process_bulk_file(
-        job_id: str, file_path: Path, template: str, delay: int = 3
+        job_id: str, file_path: Path, template: str, original_filename: str, delay: int = 3
     ):
         bulk_jobs[job_id]["status"] = "processing"
 
@@ -136,6 +140,17 @@ class BulkMessageService:
                 print(f"Failed to save final progress to file: {e}")
 
             bulk_jobs[job_id]["status"] = "completed"
+            
+            # Store report in the server
+            try:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # Clean original filename of spaces/special chars if needed, but Path handles most
+                report_name = f"report_{timestamp}_{original_filename}"
+                report_path = REPORTS_DIR / report_name
+                shutil.copy2(file_path, report_path)
+                print(f"Report for job {job_id} stored at: {report_path}")
+            except Exception as e:
+                print(f"Failed to store report for job {job_id}: {e}")
 
         except Exception as e:
             bulk_jobs[job_id]["status"] = f"error: {str(e)}"
